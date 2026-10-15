@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% from 'components.html' import filters,metric,pagination,empty,icon with context %}
+{% block content %}
+<div class="page-heading"><div><a class="back-link" href="{{url_for('groups.index')}}">← {{t('groups')}}</a><h1>{{group.name}}</h1><p>{{group.description or ''}}</p><span class="badge {{'active' if group.is_active else 'inactive'}}">{{t('active' if group.is_active else 'inactive')}}</span></div><a class="button secondary" href="{{url_for('groups.edit',group_id=group.id)}}">{{t('edit_group')}}</a></div>
+<section class="stats-grid dashboard-metrics">
+{{metric('total_children',summary.total,'people','children')}}
+{{metric('active_children',summary.active,'people','children')}}
+{{metric('attended_today',summary.present,'people','calendar')}}
+{{metric('absent_today',summary.absent,'people','calendar')}}
+{{metric('attendance_percentage',summary.percentage ~ '%','today','statistics')}}
+</section>
+<p class="report-note">{{t('group_today_note')}}</p>
+{{filters(period,start,end,periods)}}
+<div class="detail-stats">{{metric('period_visits',summary.visits,'in_period','calendar')}}{{metric('accrued_period',summary.accrued|money,'sum','money',True)}}</div>
+<p class="report-note">{{t('group_membership_note')}}</p>
+<section class="panel"><form class="table-toolbar" method="get"><div class="search-input">{{icon('search',18)}}<input name="q" value="{{q}}" placeholder="{{t('search')}}" aria-label="{{t('search')}}"></div><input type="hidden" name="period" value="{{period}}"><input type="hidden" name="start" value="{{start}}"><input type="hidden" name="end" value="{{end}}"><select name="status" aria-label="{{t('child_filter')}}">{% for option in child_filters %}<option value="{{option}}" {% if option==status %}selected{% endif %}>{{t('present_today' if option=='present' else 'absent_today' if option=='absent' else option)}}</option>{% endfor %}</select><button class="button secondary small">{{t('apply')}}</button></form>
+{% if rows %}<div class="table-scroll"><table class="group-children-table"><thead><tr><th>ID</th><th>{{t('full_name')}}</th><th>{{t('tariff')}}</th><th>{{t('period_visits')}}</th><th>{{t('status')}}</th><th>{{t('actions')}}</th></tr></thead><tbody>{% for child,photo_id,visits in rows %}<tr data-child-id="{{child.id}}"><td data-label="ID">{{child.id}}</td><td><a class="person-cell" href="{{url_for('children.detail',child_id=child.id)}}">{% if photo_id %}<img class="photo" src="{{url_for('main.media',photo_id=photo_id)}}" alt="">{% else %}<span class="photo placeholder">{{icon('children')}}</span>{% endif %}<strong>{{child.full_name}}</strong></a></td><td data-label="{{t('tariff')}}">{{child.attendance_price|money}} {{t('sum')}}</td><td data-label="{{t('period_visits')}}">{{visits}}</td><td data-label="{{t('status')}}"><span class="badge {{child.status}}">{{t(child.status)}}</span></td><td><a class="button secondary small" href="{{url_for('children.edit',child_id=child.id)}}">{{t('edit_child')}}</a></td></tr>{% endfor %}</tbody></table></div>{{pagination(page,count>page*25)}}{% else %}{{empty('no_results')}}{% endif %}</section>
+{% endblock %}

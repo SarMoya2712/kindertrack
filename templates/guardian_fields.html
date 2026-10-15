@@ -1,0 +1,13 @@
+{% macro guardian_fields(index,row,relations) %}
+<fieldset class="guardian-card guardian-fields">
+  <legend>{{t('guardian_contact')}}</legend>
+  <input type="hidden" name="guardian_index" value="{{index}}">
+  <div class="form-grid name-grid">
+    <label>{{t('relation_type')}}<select name="guardian_{{index}}_relation_type">{% for relation in relations %}<option value="{{relation}}" {% if row.get('relation_type','other')==relation %}selected{% endif %}>{{t('relation_' ~ relation)}}</option>{% endfor %}</select></label>
+    {% for field in ['last_name','first_name','middle_name'] %}<label>{{t('guardian_' ~ field)}}<input name="guardian_{{index}}_{{field}}" maxlength="80" value="{{row.get(field,'')}}"></label>{% endfor %}
+    <label>{{t('phone')}}<input name="guardian_{{index}}_phone" type="tel" maxlength="30" value="{{row.get('phone','')}}" placeholder="+998"></label>
+    <label class="checkbox-label"><input name="guardian_{{index}}_is_primary" type="checkbox" {% if row.get('is_primary') %}checked{% endif %}>{{t('primary_contact')}}</label>
+  </div>
+  <button class="button secondary small remove-guardian" type="button">{{t('remove_guardian')}}</button>
+</fieldset>
+{% endmacro %}

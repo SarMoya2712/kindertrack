@@ -1,0 +1,14 @@
+.venv/
+.env
+instance/
+models/*.onnx
+__pycache__/
+.pytest_cache/
+
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+.coverage
+htmlcov/
+.ruff_cache/

@@ -1,0 +1,56 @@
+{% macro icon(name, size=20) -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if name=='dashboard' %}<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-8H9v8H4a1 1 0 0 1-1-1Z"/>
+{% elif name=='groups' %}<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>
+{% elif name=='children' %}<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v2"/>
+{% elif name=='scanner' %}<path d="M8 3H4a1 1 0 0 0-1 1v4m13-5h4a1 1 0 0 1 1 1v4M3 16v4a1 1 0 0 0 1 1h4m13-5v4a1 1 0 0 1-1 1h-4"/><circle cx="12" cy="10" r="3"/><path d="M7 17a5 5 0 0 1 10 0"/>
+{% elif name=='statistics' %}<path d="M4 3v17h17M8 15v-4m5 4V6m5 9V9"/>
+{% elif name=='unknown' %}<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3m0 3h.01"/>
+{% elif name=='audit' %}<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M9 9h6m-6 4h6m-6 4h4"/>
+{% elif name=='arrow' %}<path d="M5 12h14m-5-5 5 5-5 5"/>
+{% elif name=='plus' %}<path d="M12 5v14M5 12h14"/>
+{% elif name=='search' %}<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/>
+{% elif name=='calendar' %}<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18"/>
+{% elif name=='check' %}<path d="m5 12 4 4L19 6"/>
+{% elif name=='camera' %}<path d="M8 5 6 8H3v12h18V8h-3l-2-3Z"/><circle cx="12" cy="13" r="4"/>
+{% elif name=='logout' %}<path d="M9 3H4v18h5m-1-9h13m-4-4 4 4-4 4"/>
+{% elif name=='edit' %}<path d="m15 4 5 5M4 20l5-1L21 7l-4-4L5 15Z"/>
+{% elif name=='money' %}<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>
+{% elif name=='shield' %}<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/>
+{% else %}<circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01"/>{% endif %}</svg>
+{%- endmacro %}
+{% macro bear() %}<svg class="bear" viewBox="0 0 64 64" aria-hidden="true"><circle cx="15" cy="14" r="11" fill="#c69d7e"/><circle cx="49" cy="14" r="11" fill="#c69d7e"/><circle cx="15" cy="14" r="6" fill="#917057"/><circle cx="49" cy="14" r="6" fill="#917057"/><ellipse cx="32" cy="34" rx="27" ry="27" fill="#d8b28e"/><ellipse cx="32" cy="43" rx="15" ry="13" fill="#f4e6d2"/><circle cx="22" cy="31" r="2.8" fill="#291c0e"/><circle cx="42" cy="31" r="2.8" fill="#291c0e"/><path d="M28 40q4-5 8 0l-4 4Z" fill="#291c0e"/><path d="M32 44v4m-6-1q3 5 6 1 3 4 6-1" stroke="#291c0e" fill="none" stroke-width="2" stroke-linecap="round"/></svg>{% endmacro %}
+{% macro filters(period,start,end,periods) %}
+<form class="period-filter" method="get">
+{% if q is defined %}<input type="hidden" name="q" value="{{q}}"><input type="hidden" name="status" value="{{status}}">{% endif %}
+{% if stat_groups is defined %}<select name="group_id" aria-label="{{t('group')}}"><option value="">{{t('all_groups')}}</option>{% for group in stat_groups %}<option value="{{group.id}}" {% if group_id==group.id %}selected{% endif %}>{{group.name}}{% if not group.is_active %} ({{t('inactive')}}){% endif %}</option>{% endfor %}</select>{% elif group_id is defined and group_id is not none %}<input type="hidden" name="group_id" value="{{group_id}}">{% endif %}
+<div class="period-select">{{icon('calendar',17)}}<select name="period" aria-label="{{t('period_label')}}" id="period-select">{% for p in periods %}<option value="{{p}}" {% if p==period %}selected{% endif %}>{{t(p)}}</option>{% endfor %}</select></div>
+{% if audit_actions is defined %}<select name="action" aria-label="{{t('action')}}"><option value="all">{{t('all_actions')}}</option>{% for key in audit_actions %}<option value="{{key}}" {% if action==key %}selected{% endif %}>{{t(key)}}</option>{% endfor %}</select>{% endif %}
+<div class="custom-dates" id="custom-dates" {% if period!='custom' %}hidden{% endif %}><label>{{t('from')}} <input type="date" name="start" value="{{start}}"></label><label>{{t('to')}} <input type="date" name="end" value="{{end}}"></label></div>
+<button class="button secondary small" type="submit">{{t('apply')}}</button><span class="range-label">{{start|dt}} — {{end|dt}}</span>
+</form>
+{% endmacro %}
+{% macro empty(title,detail='',action=False) %}<div class="empty"><div class="empty-icon">{{icon('children',30)}}</div><h3>{{t(title)}}</h3>{% if detail %}<p>{{t(detail)}}</p>{% endif %}{% if action %}<a class="button" href="{{url_for('children.edit')}}">{{icon('plus',17)}}{{t('add_child')}}</a>{% endif %}</div>{% endmacro %}
+{% macro pagination(page,more) %}<div class="pagination">{% if page>1 %}<a class="button secondary small" href="{{url_for(request.endpoint, **dict(request.view_args or {}, **dict(request.args.to_dict(),page=page-1)))}}">{{t('previous')}}</a>{% endif %}<span>{{t('page')}} {{page}}</span>{% if more %}<a class="button secondary small" href="{{url_for(request.endpoint, **dict(request.view_args or {}, **dict(request.args.to_dict(),page=page+1)))}}">{{t('next')}}</a>{% endif %}</div>{% endmacro %}
+
+{% macro metric(key,value,unit,ico,warm=False) %}
+<article class="stat-card {% if warm %}warm{% endif %}" data-metric="{{key}}"><div class="stat-top"><span>{{t(key)}}</span><span class="stat-icon">{{icon(ico,18)}}</span></div><strong data-value="{{value}}">{{value}}</strong><div class="stat-bottom">{{t(unit)}}{% if reviewable %}<form method="post" action="{{url_for('main.delete_unknown',face_id=row.id)}}" class="unknown-delete" data-confirm="{{t('confirm_snapshot_delete')}}"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">{% for key,value in [('period',period),('start',start),('end',end)] %}<input type="hidden" name="{{key}}" value="{{value}}">{% endfor %}<button type="submit" class="button secondary small">{{t('delete_snapshot')}}</button></form>{% endif %}
+</div></article>
+{% endmacro %}
+
+{% macro trend_chart(stats,kind) %}
+<section class="panel chart-panel"><div class="panel-heading"><div><h2>{{t('attendance_chart' if kind=='count' else 'revenue_chart')}}</h2><p>{{t('daily_trend')}}</p></div><span class="legend"><i></i>{{t('visits' if kind=='count' else 'sum')}}</span></div>
+<canvas class="chart" id="{{'attendance' if kind=='count' else 'revenue'}}-chart" data-chart='{{stats.chart|tojson}}' data-kind="{{kind}}" role="img" aria-label="{{t('attendance_chart' if kind=='count' else 'revenue_chart')}}"></canvas>
+<div class="chart-summary"><span>{{t('total')}}</span><strong>{{stats.selected.count if kind=='count' else stats.selected.amount|money}} {{t('visits' if kind=='count' else 'sum')}}</strong></div>
+{% if not stats.selected.count %}<p class="chart-empty-note">{{t('no_period_attendance')}}</p>{% endif %}</section>
+{% endmacro %}
+
+{% macro unknown_card(row,reviewable=False) %}
+<article class="panel unknown-card" data-unknown-id="{{row.id}}"><a href="{{url_for('main.unknown_media',face_id=row.id)}}" class="unknown-image-link" aria-label="{{t('view_snapshot')}}"><img src="{{url_for('main.unknown_media',face_id=row.id)}}" alt="{{t('unknown_person')}}" loading="lazy"></a>
+<div class="unknown-info">{% if reviewable %}<label class="unknown-select"><input type="checkbox" name="face_ids" value="{{row.id}}" form="unknown-bulk"> {{t('select_snapshot')}} #{{row.id}}</label>{% endif %}<strong><time datetime="{{row.created_at.isoformat()}}">{{row.created_at|dt}} · {{row.created_at|time}}</time></strong>
+<dl class="unknown-meta"><div><dt>{{t('confidence')}}</dt><dd>{{'%.1f'|format(row.confidence*100) ~ '%' if row.confidence is not none else t('not_available')}}</dd></div><div><dt>{{t('reason')}}</dt><dd>{{t('reason_' ~ row.reason)}}</dd></div></dl>
+<span class="badge {{'success' if row.reviewed else 'not_found'}}">{{t('reviewed' if row.reviewed else 'awaiting_review')}}</span>
+{% if reviewable and not row.reviewed %}<form method="post" action="{{url_for('main.review',face_id=row.id)}}"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">{% for key,value in [('period',period),('start',start),('end',end),('page',page)] %}<input type="hidden" name="{{key}}" value="{{value}}">{% endfor %}<button class="button secondary small">{{t('mark_reviewed')}}</button></form>{% endif %}
+{% if reviewable %}<form method="post" action="{{url_for('main.delete_unknown',face_id=row.id)}}" class="unknown-delete" data-confirm="{{t('confirm_snapshot_delete')}}"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">{% for key,value in [('period',period),('start',start),('end',end)] %}<input type="hidden" name="{{key}}" value="{{value}}">{% endfor %}<button type="submit" class="button secondary small">{{t('delete_snapshot')}}</button></form>{% endif %}
+</div></article>
+{% endmacro %}

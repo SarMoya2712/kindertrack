@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% from 'components.html' import icon,filters,metric,trend_chart with context %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">KINDERTRACK · {{t('attendance_only')}}</div><h1>{{t('statistics')}}</h1><p>{{t('statistics_hint')}}</p></div><a class="button" id="download-excel" href="{{url_for('main.export_statistics',period='custom',start=start,end=end,group_id=group_id)}}">{{t('download_excel')}}</a></div>
+{{filters(period,start,end,periods)}}
+{% if stats.missing_attendance %}<div class="alert" role="status">{{t('legacy_scans_notice')}} {{stats.missing_attendance}}</div>{% endif %}
+<section class="stats-grid statistics-metrics">
+{{metric('unique_children',stats.selected.unique,'in_period','children')}}
+{{metric('attendance_count',stats.selected.count,'in_period','calendar')}}
+{{metric('accrued_period',stats.selected.amount|money,'sum','money',True)}}
+{{metric('average_attendance',stats.average,'per_day','statistics')}}
+</section>
+<p class="report-note">{{t('group_membership_note')}}</p>
+<p class="report-note">{{t('average_help')}} · {{t('calendar_days')}}: {{stats.days}}</p>
+<div class="statistics-charts">{{trend_chart(stats,'count')}}{{trend_chart(stats,'amount')}}</div>
+<section class="panel daily-report"><details open><summary>{{t('daily_breakdown')}}</summary><div class="table-scroll"><table><thead><tr><th>{{t('date')}}</th><th>{{t('attendance_count')}}</th><th>{{t('amount')}} ({{t('sum')}})</th></tr></thead><tbody>{% for row in stats.chart %}<tr data-day="{{row.day}}"><td>{{row.day|dt}}</td><td>{{row.count}}</td><td>{{row.amount|money}}</td></tr>{% endfor %}</tbody><tfoot><tr><th>{{t('total')}}</th><td>{{stats.selected.count}}</td><td>{{stats.selected.amount|money}}</td></tr></tfoot></table></div></details></section>
+{% endblock %}

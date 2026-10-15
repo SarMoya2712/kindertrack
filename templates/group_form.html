@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading"><div><a class="back-link" href="{{url_for('groups.index')}}">← {{t('groups')}}</a><h1>{{t(title)}}</h1></div></div>
+<form class="panel child-form" method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><div class="form-grid"><label>{{t('group_name')}}<input name="name" maxlength="120" required value="{{request.form.get('name',group.name if group else '')}}"></label><label>{{t('description')}}<textarea name="description" maxlength="1000" rows="4">{{request.form.get('description',(group.description or '') if group else '')}}</textarea></label></div><div class="form-footer"><a class="button secondary" href="{{url_for('groups.index')}}">{{t('cancel')}}</a><button class="button">{{t('save')}}</button></div></form>
+{% endblock %}

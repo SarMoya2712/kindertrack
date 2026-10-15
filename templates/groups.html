@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% from 'components.html' import empty,filters with context %}
+{% block content %}
+<div class="page-heading"><div><h1>{{t('groups')}}</h1><p>{{t('groups_hint')}}</p></div><a class="button" href="{{url_for('groups.edit')}}">{{t('add_group')}}</a></div>
+{{filters(period,start,end,periods)}}
+<div class="guardian-cards">{% for row in rows %}{% set group=row.group %}<article class="panel group-card" data-group-id="{{group.id}}"><div class="panel-heading"><h2><a href="{{url_for('groups.detail',group_id=group.id,period=period,start=start,end=end)}}">{{group.name}} →</a></h2><span class="badge {{'active' if group.is_active else 'inactive'}}">{{t('active' if group.is_active else 'inactive')}}</span></div><p>{{group.description or ''}}</p>
+<dl class="group-metrics">{% for key,label in [('total','total_children'),('active','active_children'),('present','attended_today'),('absent','absent_today'),('visits','period_visits'),('accrued','accrued_period')] %}<div><dt>{{t(label)}}</dt><dd data-group-metric="{{key}}">{{row[key]|money if key=='accrued' else row[key]}}</dd></div>{% endfor %}</dl>
+<div class="heading-actions"><a class="button" href="{{url_for('groups.detail',group_id=group.id,period=period,start=start,end=end)}}">{{t('view_group')}}</a><a class="button secondary" href="{{url_for('groups.edit',group_id=group.id)}}">{{t('edit_group')}}</a><form method="post" action="{{url_for('groups.status',group_id=group.id)}}"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><input type="hidden" name="status" value="{{'inactive' if group.is_active else 'active'}}"><button class="button secondary">{{t('deactivate' if group.is_active else 'activate')}}</button></form></div></article>{% else %}<section class="panel">{{empty('no_groups')}}</section>{% endfor %}</div>
+{% endblock %}

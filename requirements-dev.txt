@@ -1,0 +1,7 @@
+-r requirements.txt
+# Browser tests use local Chromium with a simulated camera.
+playwright>=1.50,<2
+
+# Optional final-review tools
+ruff>=0.17,<1
+pip-audit>=2.10,<3

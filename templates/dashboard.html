@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% from 'components.html' import icon,filters,empty,metric,trend_chart,unknown_card with context %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">{{now.strftime('%d.%m.%Y')}} <span>•</span> KINDERTRACK</div><h1>{{t('welcome')}}</h1><p>{{t('overview')}}</p></div><a class="button" href="/scanner">{{icon('scanner',18)}}{{t('open_scanner')}}</a></div>
+{{filters(period,start,end,periods)}}
+{% if stats.missing_attendance %}<div class="alert" role="status">{{t('legacy_scans_notice')}} {{stats.missing_attendance}}</div>{% endif %}
+<section class="stats-grid dashboard-metrics">
+{{metric('attended_today',stats.today.unique,'people','children')}}
+{{metric('accrued_today',stats.today.amount|money,'sum','money',True)}}
+{{metric('total_children',stats.total,'registered','children')}}
+{{metric('attendance_count',stats.selected.count,'in_period','calendar')}}
+{{metric('accrued_period',stats.selected.amount|money,'sum','statistics')}}
+{{metric('unknown_today',stats.unknown,'today','unknown')}}
+</section>
+<div class="dashboard-grid reports-grid">
+{{trend_chart(stats,'count')}}
+<section class="panel recent-panel"><div class="panel-heading"><div><h2>{{t('recent_scans')}}</h2><p>{{t('in_period')}}</p></div>{{icon('scanner')}}</div>
+{% for scan in scans %}<div class="scan-row">{% if scan.photo_id %}<img class="photo small-photo" src="{{url_for('main.media',photo_id=scan.photo_id)}}" alt="">{% else %}<span class="photo placeholder">{{icon('unknown',19)}}</span>{% endif %}<div class="scan-name">{% if scan.child_id %}<a href="{{url_for('children.detail',child_id=scan.child_id)}}">{{scan.full_name}}</a>{% else %}<a href="{{url_for('main.unknown',period='custom',start=start,end=end)}}">{{t('unknown_person')}}</a>{% endif %}<small>{{scan.created_at|dt}} · {{scan.created_at|time}}</small></div><span class="badge {{scan.status}}">{{t(scan.status) if scan.status in ['success','already','recognized'] else t('review')}}</span></div>{% else %}{{empty('no_scans','empty_scans')}}{% endfor %}</section>
+{{trend_chart(stats,'amount')}}
+<section class="panel recognized-panel"><div class="panel-heading"><div><h2>{{t('recent_recognized')}}</h2><p>{{t('in_period')}}</p></div><a class="text-link" href="/children">{{t('all_children')}} →</a></div>
+{% for child,seen_at,photo_id in recognized %}<a class="recognized-row" href="{{url_for('children.detail',child_id=child.id)}}">{% if photo_id %}<img class="photo small-photo" src="{{url_for('main.media',photo_id=photo_id)}}" alt="">{% else %}<span class="photo placeholder">{{icon('children')}}</span>{% endif %}<span><strong>{{child.full_name}}</strong><small>{{seen_at|dt}} · {{seen_at|time}}</small></span>{{icon('arrow',16)}}</a>{% else %}{{empty('no_recognized')}}{% endfor %}</section>
+</div>
+<section class="dashboard-unknown"><div class="section-heading"><div><h2>{{t('unknown_preview')}}</h2><p>{{t('in_period')}}</p></div><a class="button secondary small" href="{{url_for('main.unknown',period='custom',start=start,end=end)}}">{{t('view_all')}}{{icon('arrow',16)}}</a></div>{% if unknown_preview %}<div class="unknown-grid">{% for row in unknown_preview %}{{unknown_card(row)}}{% endfor %}</div>{% else %}<div class="panel">{{empty('no_unknown_period')}}</div>{% endif %}</section>
+{% endblock %}

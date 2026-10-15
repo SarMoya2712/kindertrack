@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% from 'components.html' import filters,empty,pagination,unknown_card with context %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">KINDERTRACK · {{t('review')}}</div><h1>{{t('unknown')}}</h1><p>{{t('unknown_hint')}}</p></div><span class="pill">{{t('found_records')}}: {{count}}</span></div>
+{{filters(period,start,end,periods)}}
+<p class="report-note">{{t('confidence_help')}}</p>
+<section class="panel unknown-tools">
+<form id="unknown-cleanup" method="post" action="{{url_for('main.cleanup_unknown')}}" data-confirm="{{t('confirm_unknown_cleanup')}}">
+<input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+<label>{{t('cleanup_snapshots')}} <select name="cleanup_period" id="cleanup-period"><option value="7">{{t('older_7')}}</option><option value="30" selected>{{t('older_30')}}</option><option value="90">{{t('older_90')}}</option><option value="custom">{{t('custom')}}</option></select></label>
+<div id="cleanup-dates" hidden><label>{{t('from')}} <input type="date" name="cleanup_start"></label><label>{{t('to')}} <input type="date" name="cleanup_end"></label></div>
+<p>{{t('cleanup_scope')}}</p><button type="submit" class="button secondary">{{t('cleanup_snapshots')}}</button>
+</form></section>
+{% if rows %}<form id="unknown-bulk" method="post" action="{{url_for('main.delete_unknown')}}" data-confirm="{{t('confirm_unknown_bulk')}}" class="unknown-tools">
+<input type="hidden" name="csrf_token" value="{{csrf_token()}}">{% for key,value in [('period',period),('start',start),('end',end)] %}<input type="hidden" name="{{key}}" value="{{value}}">{% endfor %}
+<label><input type="checkbox" id="unknown-select-all"> {{t('select_all_snapshots')}}</label><button id="delete-selected" type="submit" class="button secondary" disabled>{{t('delete_selected')}}</button>
+</form><div class="unknown-grid">{% for row in rows %}{{unknown_card(row,True)}}{% endfor %}</div>{{pagination(page,count>page*24)}}{% else %}<section class="panel">{{empty('no_unknown_period','unknown_hint')}}</section>{% endif %}
+<dialog id="unknown-confirm" aria-labelledby="unknown-confirm-text"><p id="unknown-confirm-text"></p><div class="dialog-actions"><button type="button" class="button secondary" id="unknown-cancel">{{t('cancel')}}</button><button type="button" class="button" id="unknown-confirm-delete">{{t('delete_snapshot')}}</button></div></dialog>
+{% endblock %}
+
+{% block scripts %}<script defer src="{{url_for('static',filename='unknown.js')}}"></script>{% endblock %}

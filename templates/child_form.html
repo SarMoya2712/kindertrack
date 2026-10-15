@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% from 'components.html' import icon with context %}
+{% block content %}
+<div class="page-heading"><div><a class="back-link" href="/children">← {{t('back')}}</a><h1>{{t(title)}}</h1><p>{{t('privacy')}}</p></div></div>
+<form class="panel child-form" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+  <div class="section-title"><span>01</span><h2>{{t('child_info')}}</h2></div>
+  <div class="form-grid name-grid">
+    {% for name in ['last_name','first_name','middle_name'] %}
+    <label>{{t(name)}}{% if name=='middle_name' %} <small>({{t('optional')}})</small>{% endif %}
+      <input name="{{name}}" {% if name!='middle_name' %}required{% endif %} maxlength="80" value="{{request.form.get(name,(child[name] or '') if child else '')}}" autocomplete="off">
+    </label>{% endfor %}
+  </div>
+  <label class="group-select">{{t('group')}}<select name="group_id" required>
+    <option value="">{{t('choose_group')}}</option>{% for group in groups %}<option value="{{group.id}}" {% if request.form.get('group_id',child.group_id|string if child else '')==group.id|string %}selected{% endif %}>{{group.name}}{% if not group.is_active %} ({{t('inactive')}}){% endif %}</option>{% endfor %}
+  </select></label>
+  {% if not groups %}<p class="alert">{{t('no_active_groups')}} <a href="{{url_for('groups.edit')}}">{{t('add_group')}}</a></p>{% endif %}
+  <div class="section-title"><span>02</span><h2>{{t('guardians')}}</h2></div>
+  <p class="muted">{{t('guardian_hint')}}</p>
+  {% from 'guardian_fields.html' import guardian_fields with context %}
+  <div id="guardians">{% for row in guardians %}{{guardian_fields(loop.index0,row,relations)}}{% endfor %}</div>
+  <template id="guardian-template">{{guardian_fields('__INDEX__',{},relations)}}</template>
+  <button class="button secondary" type="button" id="add-guardian">{{t('add_guardian')}}</button>
+  <div class="section-title"><span>03</span><h2>{{t('personal')}}</h2></div>
+  <div class="form-grid">
+    <label>{{t('registration_date')}}<input type="date" name="registration_date" required max="{{today}}" value="{{request.form.get('registration_date',child.registration_date if child else today)}}"></label>
+    <label>{{t('tariff')}} ({{t('sum')}})<input type="number" name="attendance_price" step="0.01" min="0" max="100000000" required value="{{request.form.get('attendance_price',child.attendance_price if child else '')}}" placeholder="25 000"></label>
+    <label>{{t('status')}}<select name="status">{% for value in ['active','inactive'] %}<option value="{{value}}" {% if request.form.get('status',child.status if child else 'active')==value %}selected{% endif %}>{{t(value)}}</option>{% endfor %}</select></label>
+  </div>
+  <div class="section-title"><span>04</span><h2>{{t('photos')}}</h2></div>
+  {% if photos %}<p class="muted">{{t('current_photos')}}</p><div class="photo-previews existing-photos">{% for photo in photos %}<img src="{{url_for('main.media',photo_id=photo.id)}}" alt="{{child.full_name}}">{% endfor %}</div>{% endif %}
+  <div class="upload-zone">{{icon('camera',32)}}<strong>{{t('photos')}}</strong><span id="photo-help">{{t('photo_help')}}</span>
+    <label class="button secondary photo-choose" for="photo-upload">{{t('choose_photos')}}</label>
+    <input class="visually-hidden" id="photo-upload" type="file" name="photos" aria-label="{{t('choose_photos')}}" aria-describedby="photo-help" accept="image/jpeg,image/png,image/webp" multiple {% if not photos %}required{% endif %}>
+    <span id="photo-count" role="status"></span>
+  </div>
+  {% if child %}<p class="muted">{{t('replace_photos')}}</p>{% endif %}
+  <div id="photo-previews" class="photo-previews" aria-label="{{t('upload_preview')}}"></div>
+  <div class="form-footer"><a class="button secondary" href="/children">{{t('cancel')}}</a><button class="button" type="submit">{{icon('check',18)}}{{t('save')}}</button></div>
+</form>
+{% endblock %}
