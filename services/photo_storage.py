@@ -6,8 +6,8 @@ from pathlib import Path
 from PIL import Image, ImageOps, UnidentifiedImageError
 from flask import current_app
 
-MAX_BYTES = 6 * 1024 * 1024
-MAX_PIXELS = 16_000_000
+MAX_BYTES = 100 * 1024 * 1024
+MAX_PIXELS = 34_000_000
 
 
 class PhotoError(ValueError):
