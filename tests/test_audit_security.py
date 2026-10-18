@@ -29,7 +29,7 @@ def test_audit_actions_values_filters_and_logout(authorized, app, fake_embedding
         assert by_action['tariff_changed'].old_value=='25000.00'
         assert by_action['tariff_changed'].new_value=='30000.25'
         assert by_action['child_photos_updated'].old_value=={'photo_count':1}
-        assert by_action['child_photos_updated'].new_value=={'photo_count':1}
+        assert by_action['child_photos_updated'].new_value=={'photo_count':2}
         assert by_action['child_deactivated'].old_value=='active'
         assert by_action['child_activated'].new_value=='active'
         assert all(row.created_at.tzinfo is not None for row in entries)

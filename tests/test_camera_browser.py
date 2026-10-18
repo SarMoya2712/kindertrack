@@ -65,7 +65,8 @@ def test_mobile_camera_preview_capture_switch_stop(camera_page):
         route.fulfill(json={'status':'success','message':'Посещение добавлено','name':'Азиз Алиев',
             'child_url':'/children/1','group':'Средняя группа','amount':'25000.00','pause_ms':2500,'confidence':.92,'threshold':.50,'liveness':'unavailable'})
     page.route('**/api/live/frame', response)
-    playwright.expect(page.locator('#scan-result')).to_contain_text('92.0%')
+    playwright.expect(page.locator('#scan-result')).to_contain_text('Ребёнок распознан')
+    assert '%' not in page.locator('#scan-result').inner_text()
     playwright.expect(page.locator('#scan-result a')).to_have_text('Азиз Алиев')
     if os.getenv('SCANNER_SCREENSHOT_DIR'):
         directory = Path(os.environ['SCANNER_SCREENSHOT_DIR'])
@@ -150,3 +151,47 @@ def test_live_slow_network_single_request_and_stale_reply(camera_page):
     page.wait_for_timeout(800)
     assert 'STALE' not in page.locator('#scan-result').inner_text()
     assert len(requests)==1 and page.locator('#start-camera').is_visible()
+
+
+def test_cover_boxes_rotation_mirroring_fullscreen(camera_page):
+    page,origin=camera_page
+    page.add_init_script('''
+      window.boxes=[];
+      const stroke=CanvasRenderingContext2D.prototype.strokeRect;
+      CanvasRenderingContext2D.prototype.strokeRect=function(...args){
+        if(this.canvas.id==='face-overlay')window.boxes.push(args);
+        return stroke.apply(this,args);
+      };
+    ''')
+    def response(route):
+        route.fulfill(json={'status':'checking','message':'Проверка...',
+          'quality':{'width':720,'height':540,'boxes':[[300,150,100,150]],'state':'face_detected'}})
+    page.route('**/api/live/frame',response)
+    page.goto(origin+'/scanner');page.locator('#start-camera').click()
+    wait_js(page,'boxes.length>0')
+    assert page.locator('#camera').evaluate('(v)=>getComputedStyle(v).objectFit')=='cover'
+    width=page.locator('.camera-stage').bounding_box()['width']
+    assert width>360
+    def assert_box(mirrored=False):
+        w,h=page.locator('.camera-stage').evaluate('(s)=>[s.clientWidth,s.clientHeight]')
+        scale=max(w/720,h/540)
+        left=300*scale+(w-720*scale)/2
+        if mirrored:left=w-left-100*scale
+        box=page.evaluate('boxes.at(-1)')
+        assert box==pytest.approx([left,150*scale+(h-540*scale)/2,100*scale,150*scale],abs=1)
+    assert_box()
+    page.set_viewport_size({'width':844,'height':390});page.wait_for_timeout(100)
+    assert_box()
+    page.locator('#switch-camera').click()
+    wait_js(page,"document.querySelector('#camera').classList.contains('mirrored') && boxes.length>2")
+    page.wait_for_timeout(900);assert_box(True)
+    page.locator('#fullscreen-scanner').click()
+    assert page.locator('.camera-panel').evaluate('(p)=>p.classList.contains("immersive")')
+    assert page.locator('#stop-camera').is_visible()
+    page.locator('#fullscreen-scanner').click()
+    assert not page.locator('.camera-panel').evaluate('(p)=>p.classList.contains("immersive")')
+    page.evaluate('document.querySelector(".camera-panel").requestFullscreen=undefined')
+    page.locator('#fullscreen-scanner').click()
+    assert page.locator('.camera-panel').evaluate('(p)=>p.classList.contains("immersive")')
+    page.locator('#fullscreen-scanner').click()
+    page.locator('#stop-camera').click()

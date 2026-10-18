@@ -101,3 +101,40 @@
 #unknown-confirm{border:1px solid var(--line);border-radius:18px;padding:24px;max-width:min(440px,calc(100% - 32px));color:var(--ink);background:linear-gradient(135deg,#fffaf4,#f4e6d2);box-shadow:0 12px 48px #291c0e30}
 #unknown-confirm::backdrop{background:#291c0e70}.dialog-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
 @media(max-width:650px){.unknown-tools{padding:12px}.unknown-tools label{width:100%}.unknown-tools .button{min-height:44px}.dialog-actions .button{flex:1}}
+
+/* Scanner: the source frame stays uncropped; cover applies only to display. */
+.mobile-scanner .camera-stage{aspect-ratio:4/3;width:100%;height:auto;min-height:0;max-height:none;overflow:hidden;position:relative}
+.mobile-scanner .camera-stage video{width:100%;height:100%;object-fit:cover;object-position:center}
+.mobile-scanner video.mirrored{transform:scaleX(-1)}
+#face-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#frame-quality{position:absolute;bottom:48px;left:12px;right:12px;text-align:center;color:#F4E6D2;background:#291c0ebd;border-radius:12px;font-size:14px;pointer-events:none}
+#frame-quality:not(:empty){padding:8px}
+.mobile-scanner .camera-controls .button{min-height:48px;flex:1 1 auto}
+.camera-panel.immersive{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#291C0E,#6E473B);border-radius:0;overflow:auto;padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));height:100dvh;display:flex;flex-direction:column}
+.mobile-scanner .immersive .camera-stage{flex:1;min-height:160px;aspect-ratio:auto}
+.immersive .confidence-help{display:none}.immersive .scan-result{flex-shrink:0;max-height:25dvh;overflow:auto}.scanner-immersive{overflow:hidden}
+@media(max-width:650px){
+ body:has(.mobile-scanner) main{padding:12px 6px 20px}
+ body:has(.mobile-scanner) .page-heading{margin:0 8px 12px}
+ body:has(.mobile-scanner) .page-heading p,body:has(.mobile-scanner) .eyebrow{display:none}
+ .mobile-scanner .camera-panel{padding:5px}.mobile-scanner .camera-stage{aspect-ratio:3/4;height:auto;max-height:65svh;min-height:0}
+ .mobile-scanner .scanner-side{display:none}
+}
+@media(orientation:landscape) and (max-height:600px){
+ .mobile-scanner{grid-template-columns:1fr}.mobile-scanner .scanner-side{display:none}
+ .mobile-scanner .camera-stage{aspect-ratio:16/9;height:auto;max-height:75svh;min-height:0}
+ .mobile-scanner .immersive .camera-stage{max-height:none}
+}
+.photo-previews{flex-wrap:wrap}
+@media(max-width:650px) and (orientation:portrait){.mobile-scanner .camera-stage{max-height:min(65svh,calc(100svh - 330px))}.mobile-scanner .immersive .camera-stage{max-height:none}}
+
+/* Compact reference cards: delete controls never participate in photo layout. */
+.photo-previews .reference-photo{position:relative;flex:0 0 85px;width:85px;height:100px;min-width:0}
+.reference-photo>img{display:block;width:100%;height:100%;object-fit:cover;border-radius:9px}
+.photo-delete{position:absolute;top:4px;right:4px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid #e1d4c2;border-radius:50%;background:linear-gradient(135deg,#fffaf4,#f4e6d2);color:#6e473b;box-shadow:0 2px 7px #291c0e26;transition:background .16s ease,box-shadow .16s ease,transform .16s ease;z-index:1}
+.photo-delete>span{font-size:24px;font-weight:400;line-height:1;transform:translateY(-1px);pointer-events:none}
+.photo-delete::after{content:'';position:absolute;inset:-6px;border-radius:50%}
+@media(hover:hover){.photo-delete:hover{background:#e1d4c2;color:#291c0e;box-shadow:0 3px 9px #291c0e35}}
+.photo-delete:active{transform:scale(.94);background:#beb5a9}
+.photo-delete:focus-visible{outline:3px solid #6e473b;outline-offset:2px;box-shadow:0 0 0 5px #f4e6d2}
+@media(prefers-reduced-motion:reduce){.photo-delete{transition:none}}

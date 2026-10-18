@@ -62,7 +62,7 @@ def test_three_formats_replacement_and_metadata(authorized, app, fake_embedding)
         assert '/' not in filename
         with Image.open(app.config['DATA_DIR'] / 'photos' / filename) as image:
             assert image.format == 'JPEG' and not image.getexif()
-    assert edit(authorized, photos=[(image_bytes('blue'), 'new.jpg')]).status_code == 302
+    assert edit(authorized, remove_photos=['1','2','3'], photos=[(image_bytes('blue'), 'new.jpg')]).status_code == 302
     assert all(not (app.config['DATA_DIR'] / 'photos' / name).exists() for name in filenames)
     with app.app_context(): assert db.session.scalar(select(func.count(Photo.id))) == 1
     assert len(list((app.config['DATA_DIR'] / 'photos').glob('*.jpg'))) == 1
@@ -72,9 +72,9 @@ def test_three_formats_replacement_and_metadata(authorized, app, fake_embedding)
 def test_invalid_photos_leave_no_records(authorized, app, kind):
     uploads = {
         'missing': [],
-        'too_many': [(image_bytes(), f'{i}.jpg') for i in range(4)],
+        'too_many': [(image_bytes(), f'{i}.jpg') for i in range(11)],
         'fake': [(io.BytesIO(b'not an image'), 'image.jpg')],
-        'oversized': [(io.BytesIO(b'x' * (6 * 1024 * 1024 + 1)), 'image.jpg')],
+        'oversized': [(io.BytesIO(b'x' * (15 * 1024 * 1024 + 1)), 'image.jpg')],
         'svg': [(io.BytesIO(b'<svg xmlns="http://www.w3.org/2000/svg"></svg>'), 'image.svg')],
         'truncated': [(io.BytesIO(image_bytes().getvalue()[:100]), 'image.jpg')],
     }

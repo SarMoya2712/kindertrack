@@ -99,7 +99,7 @@ def test_full_flow_parent_fields_and_decimal_snapshot(authorized, app, fake_embe
 
 
 def test_invalid_uploads_and_required_parent_names(authorized, app, fake_embedding):
-    for photos in [[(io.BytesIO(b'not image'),'bad.jpg')],[(image_bytes(),f'{i}.jpg') for i in range(4)]]:
+    for photos in [[(io.BytesIO(b'not image'),'bad.jpg')],[(image_bytes(),f'{i}.jpg') for i in range(11)]]:
         assert add_child(authorized,photos=photos).status_code==200
     for price in ['NaN','-1','123.456','Infinity','99999999999999']:
         assert add_child(authorized,price=price).status_code==200

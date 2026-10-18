@@ -22,9 +22,11 @@ from services import photo_storage
 
 def settings():
     config = current_app.config
-    return dict(interval_ms=max(300, min(800, config['LIVE_SCAN_INTERVAL_MS'])),
-        stable_frames=max(2, min(3, config['LIVE_SCAN_STABLE_FRAMES'])),
-        window_seconds=max(2, min(15, config['LIVE_SCAN_WINDOW_SECONDS'])),
+    interval = max(300, min(5000, config['LIVE_SCAN_INTERVAL_MS']))
+    stable_frames = max(2, min(3, config['LIVE_SCAN_STABLE_FRAMES']))
+    return dict(interval_ms=interval,
+        stable_frames=stable_frames,
+        window_seconds=max((stable_frames-1)*interval/1000+2, min(15, config['LIVE_SCAN_WINDOW_SECONDS'])),
         pause_ms=max(2000, min(3000, config['LIVE_SCAN_PAUSE_MS'])),
         unknown_cooldown=max(10, min(300, config['LIVE_UNKNOWN_COOLDOWN_SECONDS'])),
         unknown_similarity=max(.3, min(.95, config['LIVE_UNKNOWN_SIMILARITY'])))

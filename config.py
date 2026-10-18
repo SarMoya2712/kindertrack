@@ -6,12 +6,12 @@ ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env", override=False)
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
-    DATA_DIR = ROOT / 'instance'
+    DATA_DIR = Path(os.getenv('DATA_DIR') or os.getenv('RAILWAY_VOLUME_MOUNT_PATH') or ROOT / 'instance')
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {'pool_pre_ping': True, 'hide_parameters': True,
         'connect_args': {'connect_timeout': 5}, 'pool_timeout': 10}
-    MODEL_DIR = ROOT / 'models'
+    MODEL_DIR = Path(os.getenv('MODEL_DIR') or (DATA_DIR / 'models' if os.getenv('RAILWAY_ENVIRONMENT_ID') else ROOT / 'models'))
     TIMEZONE = os.getenv('TIMEZONE', 'Asia/Tashkent')
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
@@ -21,7 +21,7 @@ class Config:
     MAX_FORM_MEMORY_SIZE = 128 * 1024
     MAX_FORM_PARTS = 128
     TRUSTED_HOSTS = [host.strip() for host in os.getenv('TRUSTED_HOSTS', '').split(',') if host.strip()] or None
-    MAX_CONTENT_LENGTH = 20 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 102 * 1024 * 1024
     FACE_THRESHOLD = float(os.getenv('FACE_THRESHOLD', '0.50'))
     FACE_MARGIN = float(os.getenv('FACE_MARGIN', '0.08'))
     REQUIRE_LIVENESS = os.getenv('REQUIRE_LIVENESS', 'false').lower() == 'true'

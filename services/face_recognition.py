@@ -2,7 +2,7 @@ import threading
 from pathlib import Path
 import cv2
 import numpy as np
-from flask import current_app
+from flask import current_app, g, has_request_context
 from sqlalchemy import select
 from database import db
 from database.models import Photo, Child
@@ -89,6 +89,9 @@ class FaceService:
             self.load()
             self.detector.setInputSize((image.shape[1], image.shape[0]))
             _, faces = self.detector.detect(image)
+            if scanning and has_request_context():
+                from services.frame_quality import evaluate
+                g.scan_quality = evaluate(image, faces)
             if faces is None or len(faces) == 0: raise FaceError('no_face' if scanning else 'one_face')
             if len(faces) != 1: raise FaceError('multiple_faces' if scanning else 'one_face')
             face = faces[0]

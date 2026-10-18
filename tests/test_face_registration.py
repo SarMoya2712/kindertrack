@@ -28,8 +28,8 @@ def test_real_enrollment_update_preserves_vectors_without_upload(authorized, app
         calls.append(scanning)
         return extract(image, scanning)
     monkeypatch.setattr(service, 'extract', track)
-    assert add_child(authorized, photos=[(portrait(), f'{i}.jpg') for i in range(3)]).status_code == 302
-    assert calls == [False] * 3
+    assert add_child(authorized, photos=[(portrait(), f'{i}.jpg') for i in range(10)]).status_code == 302
+    assert calls == [False] * 10
     with app.app_context():
         photos = db.session.scalars(select(Photo).order_by(Photo.id)).all()
         before = [(p.filename, p.embedding, p.model) for p in photos]
@@ -42,17 +42,17 @@ def test_real_enrollment_update_preserves_vectors_without_upload(authorized, app
         assert db.session.scalar(select(func.count(Scan.id))) == 0
     form = dict(child_form(), csrf_token=csrf(authorized), first_name='Сардор')
     assert authorized.post('/children/1/edit', data=form).status_code == 302
-    assert len(calls) == 3
+    assert len(calls) == 10
     with app.app_context():
         after = [(p.filename, p.embedding, p.model) for p in db.session.scalars(select(Photo).order_by(Photo.id))]
         assert before == after
         assert all(photo_storage.photo_path(name).exists() for name, _, _ in before)
         # Matching reads saved vectors and does not run extraction for references.
         assert service.match(np.frombuffer(before[0][1], dtype=np.float32))[0] == 1
-    assert len(calls) == 3
-    form.update(csrf_token=csrf(authorized), photos=[(portrait(), 'replacement.jpg')])
+    assert len(calls) == 10
+    form.update(csrf_token=csrf(authorized), remove_photos=[str(i) for i in range(1,11)], photos=[(portrait(), 'replacement.jpg')])
     assert authorized.post('/children/1/edit', data=form).status_code == 302
-    assert len(calls) == 4
+    assert len(calls) == 11
     with app.app_context():
         assert db.session.scalar(select(func.count(Photo.id))) == 1
         assert db.session.scalar(select(Photo)).embedding is not None

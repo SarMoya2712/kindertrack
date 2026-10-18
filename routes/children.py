@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 import unicodedata
 from flask import Blueprint, request, render_template, redirect, url_for, current_app, flash, abort
-from sqlalchemy import select, func, or_, delete
+from sqlalchemy import select, func, or_
 from database import db
 from database.models import Child, Photo, Attendance, Group, Guardian
 from routes.auth import login_required
@@ -88,7 +88,9 @@ def edit(child_id=None):
                 or price.as_tuple().exponent < -2 or values['registration_date']>now().date()): raise ValueError()
             values['attendance_price'] = price.quantize(Decimal('0.01'))
             uploads = [f for f in request.files.getlist('photos') if f.filename]
-            if (not editing and not uploads) or len(uploads)>3: raise PhotoError('photo_count')
+            remove_ids = {int(value) for value in request.form.getlist('remove_photos')}
+            if (not editing and (not uploads or remove_ids)) or len(uploads)>10: raise PhotoError('photo_count')
+            photo_storage.validate_batch(uploads)
             prepared = [(uuid4().hex + '.jpg', *current_app.extensions['face'].reference(upload)) for upload in uploads]
             # Serialize against group deactivation. Keep an existing assignment
             # to an inactive group, but never assign new children to it.
@@ -98,7 +100,9 @@ def edit(child_id=None):
             if editing:
                 # Serialize concurrent edits after validating uploads.
                 child = child_or_404(child_id, lock=True)
-                if not prepared and not db.session.scalar(select(Photo.id).where(Photo.child_id == child_id).limit(1)):
+                existing = list(db.session.scalars(select(Photo).where(Photo.child_id == child_id)))
+                if not remove_ids.issubset({photo.id for photo in existing}): raise PhotoError('image_invalid')
+                if not 1 <= len(existing) - len(remove_ids) + len(prepared) <= 10:
                     raise PhotoError('photo_count')
                 if not group.is_active and child.group_id != group.id: raise ValueError('invalid_form')
                 old_guardians = snapshot(child.guardians)
@@ -129,11 +133,13 @@ def edit(child_id=None):
                 child.guardians.clear()
                 db.session.flush()
                 child.guardians.extend(Guardian(**row) for row in guardians)
-            if prepared:
-                old_photos = list(db.session.scalars(select(Photo.filename).where(Photo.child_id==child_id)))
+            if prepared or remove_ids:
+                removed = [photo for photo in existing if photo.id in remove_ids] if editing else []
+                old_photos = [photo.filename for photo in removed]
+                for photo in removed: db.session.delete(photo)
                 if editing:
-                    record('child_photos_updated', child_id, old_value={'photo_count':len(old_photos)}, new_value={'photo_count':len(prepared)})
-                db.session.execute(delete(Photo).where(Photo.child_id==child_id))
+                    record('child_photos_updated', child_id,
+                        old_value={'photo_count':len(existing)}, new_value={'photo_count':len(existing)-len(removed)+len(prepared)})
                 for filename, image, embedding, model in prepared:
                     paths.append(filename)
                     photo_storage.save(filename, image)

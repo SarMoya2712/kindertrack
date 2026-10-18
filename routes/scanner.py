@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request, render_template, g
 from routes.auth import login_required
 from services.face_recognition import FaceError
 from services.localization import t
@@ -46,5 +46,6 @@ def live_frame():
     if not upload or len(feed_id) != 32:
         return {'message':t('image_invalid'), 'status':'error'}, 400
     result = frame(upload, feed_id)
+    if hasattr(g, 'scan_quality'): result['quality'] = g.scan_quality
     result['message'] = t(result['status'])
     return result

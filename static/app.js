@@ -4,20 +4,40 @@ const tr = key => messages[key] || key;
 const period = document.getElementById('period-select');
 if (period) period.addEventListener('change', () => {document.getElementById('custom-dates').hidden = period.value !== 'custom';});
 const upload = document.getElementById('photo-upload');
-if (upload) upload.addEventListener('change', () => {
-  const tooLarge = [...upload.files].some(file => file.size > 6 * 1024 * 1024);
-  upload.setCustomValidity(upload.files.length > 3 ? tr('photo_count') : tooLarge ? tr('image_invalid') : '');
-  document.getElementById('photo-count').textContent = tr('files_selected') + ': ' + upload.files.length;
-  const previews = document.getElementById('photo-previews');
-  previews.replaceChildren();
-  [...upload.files].slice(0,3).forEach(file => {
-    const img = document.createElement('img');
-    const url = URL.createObjectURL(file);
-    img.src = url; img.alt = file.name;
-    img.onload = img.onerror = () => URL.revokeObjectURL(url);
-    previews.append(img);
-  });
-});
+if (upload) {
+  let selected=[];
+  const render=()=>{
+    const transfer=new DataTransfer();selected.forEach(file=>transfer.items.add(file));upload.files=transfer.files;
+    const kept=document.querySelectorAll('.existing-photos input:not(:checked)').length;
+    const total=selected.reduce((sum,file)=>sum+file.size,0);
+    upload.setCustomValidity(kept+selected.length>10 || kept+selected.length<1 ? tr('photo_count') :
+      selected.some(file=>file.size>15*1024*1024) ? tr('image_invalid') : total>100*1024*1024 ? tr('photo_total') : '');
+    document.getElementById('photo-count').textContent=tr('files_selected')+': '+selected.length;
+    const previews=document.getElementById('photo-previews');previews.replaceChildren();
+    selected.forEach((file,index)=>{
+      const card=document.createElement('div'),img=document.createElement('img'),button=document.createElement('button');
+      const url=URL.createObjectURL(file);img.src=url;img.alt=file.name;
+      img.onload=img.onerror=()=>URL.revokeObjectURL(url);
+      card.className='reference-photo';
+      button.type='button';button.className='photo-delete';
+      button.setAttribute('aria-label',tr('remove_photo')+' '+(index+1));button.title=tr('remove_photo');
+      const glyph=document.createElement('span');glyph.textContent='×';glyph.setAttribute('aria-hidden','true');button.append(glyph);
+      button.onclick=()=>{
+        if(!window.confirm(tr('confirm_remove_preview')))return;
+        selected.splice(index,1);render();
+        (previews.querySelectorAll('.photo-delete')[Math.min(index,selected.length-1)]||upload).focus();
+      };card.append(img,button);previews.append(card);
+    });
+  };
+  upload.addEventListener('change',()=>{selected.push(...upload.files);render();});
+  document.querySelectorAll('.existing-photos .photo-delete').forEach(button=>button.addEventListener('click',()=>{
+    if(!window.confirm(tr('confirm_remove_saved')))return;
+    const card=button.closest('.reference-photo');
+    card.querySelector('input[name="remove_photos"]').checked=true;
+    card.hidden=true;render();
+    (document.querySelector('.existing-photos .reference-photo:not([hidden]) .photo-delete')||upload).focus();
+  }));
+}
 function drawChart(canvas) {
   const raw = JSON.parse(canvas.dataset.chart);
   const kind = canvas.dataset.kind;

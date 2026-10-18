@@ -21,6 +21,11 @@ def create_app(test_config=None):
     app.config.from_object(Config)
     if test_config: app.config.update(test_config)
     data=Path(app.config['DATA_DIR'])
+    if os.getenv('RAILWAY_ENVIRONMENT_ID') and not app.testing:
+        mount = os.getenv('RAILWAY_VOLUME_MOUNT_PATH')
+        if not mount or not all(Path(path).resolve().is_relative_to(Path(mount).resolve())
+                for path in (data, app.config['MODEL_DIR'])):
+            raise RuntimeError('Railway requires DATA_DIR and MODEL_DIR on an attached persistent volume')
     (data/'photos').mkdir(parents=True,exist_ok=True,mode=0o700)
     (data/'photos').chmod(0o700)
     if not app.config['SECRET_KEY']:
@@ -31,6 +36,10 @@ def create_app(test_config=None):
         except FileExistsError: pass
         app.config['SECRET_KEY']=secret_file.read_text().strip()
     init_database(app)
+    @app.before_request
+    def limit_scan_upload():
+        if request.path in ('/api/scan', '/api/live/frame'):
+            request.max_content_length = 2 * 1024 * 1024
     init_security(app)
     init_commands(app)
     app.extensions['face']=FaceService(app.config['MODEL_DIR'])

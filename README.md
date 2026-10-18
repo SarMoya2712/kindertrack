@@ -109,11 +109,11 @@ flask --app app db migrate -m "Описание изменения"
 
 ## Регистрация лиц и сканер
 
-При создании или замене 1–3 фото проверяются JPEG/PNG/WebP, размер до 6 МБ на файл и 16 мегапикселей. Фотография поворачивается по EXIF, уменьшается до 1600 пикселей и перекодируется без метаданных. Допускается ровно одно лицо минимум 60×60 пикселей, порог YuNet — 0.85. SFace сохраняет нормированный 128-мерный float32-вектор (512 байт) и версию модели в `photos`.
+При создании или замене 1–10 фото проверяются JPEG/PNG/WebP, размер до 15 МиБ на файл, 100 МиБ на загрузку и 50 мегапикселей. Фотография поворачивается по EXIF, уменьшается до 1600 пикселей и перекодируется без метаданных. Допускается ровно одно лицо минимум 60×60 пикселей, порог YuNet — 0.85. SFace сохраняет нормированный 128-мерный float32-вектор (512 байт) и версию модели в `photos`.
 
 Файлы имеют случайные имена и права 0600, каталог — 0700. Путь проверяется централизованно, обход каталога и симлинки запрещены. Фото доступны только через `/media/<id>` и `/unknown/media/<id>` после авторизации; `instance/` не раздаётся.
 
-Редактирование полей без загрузки сохраняет фотографии и векторы. Новые фото заменяют набор только после успешной проверки всех файлов и сохранения данных. Ошибка откатывает изменения и очищает новые файлы.
+Редактирование полей без загрузки сохраняет фотографии и векторы. Новые фото добавляются к набору; удаляются только явно отмеченные фотографии. Изменения применяются после проверки всех файлов и сохранения данных. Ошибка откатывает изменения и очищает новые файлы.
 
 Для старых фотографий без embeddings:
 
@@ -131,13 +131,13 @@ flask --app app enroll-photos
 
 Браузер сохраняет видеопоток активным, раз в 600 мс берёт JPEG-кадр с длинной стороной не более 720 px (качество 0.82) и отправляет его на `/api/live/frame`. В каждый момент выполняется максимум один запрос: медленный ответ уменьшает частоту, очередь кадров не создаётся. Таймаут — 12 секунд, после сетевой ошибки — пауза 3 секунды. Во время обработки можно остановить или переключить камеру; старые ответы игнорируются. При уходе/скрытии страницы камера и таймеры отключаются.
 
-Сервер требует 3 последовательных совпадения одного ребёнка в пределах 5 секунд. Другое лицо, отсутствие лица или истечение окна сбрасывает подтверждение. После подтверждения используются существующие правила посещений. Фото, ФИО, группа, результат и сумма нового начисления показываются 2.5 секунды; затем обработка возобновляется, без выключения камеры. Уже отмеченный ребёнок не получает повторного посещения/суммы.
+По умолчанию сервер требует 3 последовательных совпадения одного ребёнка в пределах 5 секунд. При редкой выборке окно автоматически расширяется для подтверждения. Другое лицо, отсутствие лица или истечение окна сбрасывает подтверждение. После подтверждения используются существующие правила посещений. Фото, ФИО, группа, результат и сумма нового начисления показываются 2.5 секунды; затем обработка возобновляется, без выключения камеры. Уже отмеченный ребёнок не получает повторного посещения/суммы.
 
 Неизвестное лицо тоже требует последовательного подтверждения; SFace-векторы кадров сравниваются, чтобы не объединять разных неизвестных людей. Для похожего неизвестного лица действует cooldown 60 секунд в рамках Admin-сессии, включая переключение/перезапуск камеры. Другое устойчиво неизвестное лицо можно сохранить сразу после короткой паузы. Низкая уверенность никогда не создаёт посещение.
 
 | Переменная | По умолчанию | Допустимый диапазон |
 | --- | --- | --- |
-| `LIVE_SCAN_INTERVAL_MS` | `600` | 300–800 мс |
+| `LIVE_SCAN_INTERVAL_MS` | `600` | 300–5000 мс |
 | `LIVE_SCAN_STABLE_FRAMES` | `3` | 2–3 результата |
 | `LIVE_SCAN_WINDOW_SECONDS` | `5` | 2–15 секунд |
 | `LIVE_SCAN_PAUSE_MS` | `2500` | 2000–3000 мс |
@@ -202,3 +202,51 @@ E2E: вход → группа → ребёнок/отец и мать → тр�
 Звуки LIVE-сканера: локальный `static/audio/applepay.mp3` для нового посещения и `static/audio/error_CDOxCYm.mp3` для подтверждённого неизвестного лица. Оба файла предварительно загружаются и декодируются через Web Audio при запуске сканера. Повторное посещение и системная ошибка имеют отдельные синтезированные сигналы. При недоступном MP3 используется короткий синтезированный сигнал без задержки распознавания. Кнопка «Звук» сохраняет настройку в localStorage; по умолчанию включена. Аудио разблокируется нажатием запуска камеры или включения звука. Повтор одного результата для того же ребёнка подавляется на 15 минут в открытой странице; ошибки — на 15 секунд. Обычные поисковые кадры беззвучны. Если браузер блокирует аудио, сканер продолжает работу.
 
 Неизвестные лица: доступны удаление одного снимка, выбранных снимков на текущей странице и очистка всех снимков старше 7/30/90 суток либо за включительный диапазон местных дат (Asia/Tashkent). Все операции требуют Admin, CSRF и подтверждения; действия записываются в аудит. Удаляются только `unknown_faces` и их файлы, сканирования и посещения сохраняются. Сервис проверяет закрытый путь, запрещает симлинки и совпадение с именем фотографии ребёнка. Отсутствующий файл не мешает удалению записи. Временные закрытые жёсткие ссылки позволяют восстановить файлы при обычной ошибке транзакции/удаления и удаляются после успеха. PostgreSQL и файловая система не образуют единую атомарную транзакцию: после аварийного завершения процесса нужно проверить оставшиеся каталоги `.unknown-delete-*` в закрытом хранилище. Тесты: `tests/test_unknown_deletion.py`, `tests/test_unknown_deletion_browser.py`.
+
+### Reference photos and mobile LIVE scanner (October 2026)
+
+Registration accepts 1–10 references per child: JPEG/PNG/WebP, 15 MiB per
+file, 100 MiB total per submitted batch, and 50 million source pixels. Animated,
+corrupt, unsupported and oversized images are rejected before enrollment. Photos
+are decoded, EXIF-oriented, stripped of metadata and resized proportionally to
+1600 px maximum edge (JPEG quality 90). Use several useful facial angles.
+New uploads **append**; check an existing photo for removal and add a new one to
+replace it. At least one reference must remain. Only added references are embedded;
+profile edits do not regenerate or delete vectors. Each photo has its own PostgreSQL
+embedding associated with its child. Recognition reads vectors, never reference images.
+
+Private files remain behind authenticated `/media` routes with `no-store` responses,
+0700 directories and 0600 files. `DATA_DIR` and `MODEL_DIR` accept absolute paths.
+Local development defaults remain `instance` and `models` in the project.
+
+For Railway, attach a persistent volume at `/data` and set the service start command
+to `sh scripts/start_railway.sh`. Configure the existing PostgreSQL `DATABASE_URL`,
+`SECRET_KEY`, HTTPS/cookie and trusted-host settings. The start script installs or
+verifies models **on the volume at runtime**, applies existing migrations and starts
+Gunicorn. Do not download models into a volume during build or pre-deploy:
+[Railway mounts volumes only at runtime](https://docs.railway.com/volumes).
+Startup refuses Railway paths outside the configured volume. Before switching an
+existing deployment, copy its private `photos` directory into `/data/photos`, preserving
+filenames and permissions; retain the existing database and secret. Back up both the
+volume and PostgreSQL. Verify a stored photo and model checksums before and after a
+redeploy. An attached volume and actual redeployment must be verified in Railway;
+local tests cannot establish deployment persistence.
+
+LIVE sampling is configurable with `LIVE_SCAN_INTERVAL_MS` (300–5000 ms).
+One request runs at a time; the source frame is resized to at most 720 px, JPEG .82.
+Duplicate sample fingerprints are throttled to 1.5 seconds while confirming a
+match and 10 seconds otherwise, preserving stable confirmation without repeatedly
+submitting a static scene. Preview cover cropping and front
+mirroring are display-only. Boxes map source coordinates using the cover scale and
+center offset and are clipped to the preview; stale boxes expire. Fullscreen uses the
+browser API with a CSS fallback. Existing stable recognition, database attendance
+uniqueness and audio cooldowns remain in place.
+
+Quality hints use the same backend detection pass: face/frame ratio, boundary position,
+mean face luminance, Laplacian variance on a 128×128 face crop, face count, and landmark
+asymmetry. Thresholds are heuristic advisory labels, not calibrated quality or identity
+percentages. Side-angle hints do not block recognition; the existing minimum face size
+and multiple-face safety rules remain. Hints and boxes arrive at recognition cadence,
+so they can lag motion by network/inference latency. No extra camera analysis requests
+are issued. Physical Android/iOS camera behavior and recognition across real child
+poses require device and representative-data testing.

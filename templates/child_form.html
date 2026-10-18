@@ -28,7 +28,7 @@
     <label>{{t('status')}}<select name="status">{% for value in ['active','inactive'] %}<option value="{{value}}" {% if request.form.get('status',child.status if child else 'active')==value %}selected{% endif %}>{{t(value)}}</option>{% endfor %}</select></label>
   </div>
   <div class="section-title"><span>04</span><h2>{{t('photos')}}</h2></div>
-  {% if photos %}<p class="muted">{{t('current_photos')}}</p><div class="photo-previews existing-photos">{% for photo in photos %}<img src="{{url_for('main.media',photo_id=photo.id)}}" alt="{{child.full_name}}">{% endfor %}</div>{% endif %}
+  {% if photos %}<p class="muted">{{t('current_photos')}}</p><div class="photo-previews existing-photos">{% for photo in photos %}<div class="reference-photo"><img src="{{url_for('main.media',photo_id=photo.id)}}" alt="{{child.full_name}}"><input type="checkbox" name="remove_photos" value="{{photo.id}}" hidden><button type="button" class="photo-delete" aria-label="{{t('remove_photo')}} {{loop.index}}" title="{{t('remove_photo')}}"><span aria-hidden="true">×</span></button></div>{% endfor %}</div>{% endif %}
   <div class="upload-zone">{{icon('camera',32)}}<strong>{{t('photos')}}</strong><span id="photo-help">{{t('photo_help')}}</span>
     <label class="button secondary photo-choose" for="photo-upload">{{t('choose_photos')}}</label>
     <input class="visually-hidden" id="photo-upload" type="file" name="photos" aria-label="{{t('choose_photos')}}" aria-describedby="photo-help" accept="image/jpeg,image/png,image/webp" multiple {% if not photos %}required{% endif %}>
