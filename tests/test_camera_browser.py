@@ -80,15 +80,20 @@ def test_mobile_camera_preview_capture_switch_stop(camera_page):
     page.wait_for_timeout(2900)
     assert len(hits) >= 2
     assert page.evaluate('lastStream.getVideoTracks()[0].readyState') == 'live'
+    page.evaluate('window.previousStream=lastStream')
     page.locator('#switch-camera').click()
     wait_js(page, 'cameraRequests.length === 2 && !document.querySelector("#switch-camera").disabled')
     assert page.evaluate('cameraRequests[1].video.facingMode.ideal') == 'user'
+    assert page.evaluate('previousStream.getTracks().every(track=>track.readyState==="ended")')
     page.locator('#stop-camera').click()
     assert page.evaluate('lastStream.getTracks().every(track=>track.readyState==="ended")')
     assert page.locator('#start-camera').is_visible()
-    for width,height in [(768,1024),(1440,900)]:
+    page.locator('#start-camera').click()
+    wait_js(page, 'cameraRequests.length === 3 && !document.querySelector("#switch-camera").disabled')
+    for width,height in [(390,844),(844,390),(768,1024),(1440,900)]:
         page.set_viewport_size({'width':width,'height':height})
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    page.locator('#stop-camera').click()
     assert errors == []
 
 
@@ -195,3 +200,41 @@ def test_cover_boxes_rotation_mirroring_fullscreen(camera_page):
     assert page.locator('.camera-panel').evaluate('(p)=>p.classList.contains("immersive")')
     page.locator('#fullscreen-scanner').click()
     page.locator('#stop-camera').click()
+
+
+def test_overlay_controls_layout_and_labels(camera_page):
+    page, origin = camera_page
+    page.route('**/api/live/frame', lambda route: route.fulfill(json={
+        'status':'checking', 'message':'Проверка...',
+        'quality':{'width':720,'height':540,'boxes':[[300,150,100,150]],'state':'face_detected'}}))
+    page.goto(origin+'/scanner')
+    page.locator('#start-camera').click()
+    wait_js(page, '!document.querySelector("#switch-camera").disabled')
+    for width,height in [(390,844),(844,390),(768,1024),(1440,900)]:
+        page.set_viewport_size({'width':width,'height':height})
+        page.wait_for_timeout(100)
+        assert page.evaluate('''() => {
+          const stage=document.querySelector('.camera-stage').getBoundingClientRect();
+          const guide=document.querySelector('.face-guide').getBoundingClientRect();
+          const caption=document.querySelector('.camera-caption').getBoundingClientRect();
+          const intersects=(a,b)=>a.left<b.right && a.right>b.left && a.top<b.bottom && a.bottom>b.top;
+          return [...document.querySelectorAll('.camera-overlay-control')].every(button=>{
+            const box=button.getBoundingClientRect();
+            return button.parentElement.matches('.camera-stage') && box.width>=44 && box.height>=44 &&
+              box.left>=stage.left && box.right<=stage.right && box.top>=stage.top && box.bottom<=stage.bottom &&
+              !intersects(box,guide) && !intersects(box,caption) && button.getAttribute('aria-label') && button.title;
+          });
+        }''')
+    page.locator('#fullscreen-scanner').click()
+    assert page.locator('[data-fullscreen-exit]').is_visible()
+    assert page.locator('#fullscreen-scanner').get_attribute('aria-label')=='Свернуть экран'
+    for selector in ['#sound-toggle','#fullscreen-scanner','#switch-camera','#stop-camera']:
+        assert page.locator(selector).is_visible()
+    page.locator('#fullscreen-scanner').click()
+    assert page.locator('[data-fullscreen-enter]').is_visible()
+    page.locator('#stop-camera').click()
+    for language, sound, switch in [('uz_lat','Ovoz','Kamerani almashtirish'),('uz_cyr','Овоз','Камерани алмаштириш')]:
+        page.locator(f'form[action="/language/{language}"] button').click()
+        assert page.locator('#sound-toggle').get_attribute('aria-label')==sound
+        assert page.locator('#switch-camera').get_attribute('aria-label')==switch
+        assert page.locator('#switch-camera').get_attribute('title')==switch

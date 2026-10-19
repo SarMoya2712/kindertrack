@@ -27,9 +27,18 @@
  }
  new ResizeObserver(()=>drawQuality(quality)).observe(stage);
  const fullscreen=document.getElementById('fullscreen-scanner');
- function immersive(active){panel.classList.toggle('immersive',active);document.body.classList.toggle('scanner-immersive',active);fullscreen.textContent=tr(active?'exit_fullscreen':'fullscreen');}
+ function immersive(active){
+   panel.classList.toggle('immersive',active);document.body.classList.toggle('scanner-immersive',active);
+   const label=tr(active?'exit_fullscreen':'fullscreen');
+   fullscreen.setAttribute('aria-label',label);fullscreen.title=label;
+   fullscreen.querySelector('[data-fullscreen-enter]').hidden=active;
+   fullscreen.querySelector('[data-fullscreen-exit]').hidden=!active;
+ }
  fullscreen.addEventListener('click',async()=>{
-   if(panel.classList.contains('immersive')){if(document.fullscreenElement)await document.exitFullscreen();immersive(false);return;}
+   if(panel.classList.contains('immersive')){
+     try{if(document.fullscreenElement)await document.exitFullscreen();}catch(_){return;}
+     immersive(false);return;
+   }
    immersive(true);
    try{if(panel.requestFullscreen)await panel.requestFullscreen();}catch(_){/* CSS fallback remains usable. */}
  });

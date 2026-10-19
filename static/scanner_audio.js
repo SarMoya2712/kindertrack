@@ -17,7 +17,13 @@ window.createScannerAudio = function(button) {
    }));
  }
  try {enabled=localStorage.getItem(preference)!=='off';} catch (_) {}
- function render(){button.textContent=tr('sound')+': '+tr(enabled?'sound_on':'sound_off');button.setAttribute('aria-pressed',String(enabled));}
+ function render(){
+   const label=tr('sound')+': '+tr(enabled?'sound_on':'sound_off');
+   button.setAttribute('aria-label',tr('sound'));button.title=label;
+   button.setAttribute('aria-pressed',String(enabled));
+   const on=button.querySelector('[data-sound-on]'),off=button.querySelector('[data-sound-off]');
+   if(on&&off){on.hidden=!enabled;off.hidden=enabled;}else button.textContent=label;
+ }
  function unlock(){
    try {
      const Audio=window.AudioContext||window.webkitAudioContext;

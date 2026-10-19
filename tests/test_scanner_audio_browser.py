@@ -48,7 +48,7 @@ def test_confirmed_sounds_cooldowns_and_silent_frames(camera_page):
         route.fulfill(json={**data,'message':data['status']})
     page.route('**/api/live/frame',respond)
     page.goto(origin+'/scanner')
-    assert page.locator('#sound-toggle').inner_text()=='Звук: Вкл'
+    assert page.locator('#sound-toggle').get_attribute('title')=='Звук: Вкл'
     page.locator('#start-camera').click()
     wait_js(page,"document.querySelector('#scan-result').textContent.includes('liveness_failed')")
     assert len(hits)==10
@@ -70,7 +70,7 @@ def test_mute_persists_and_reenable_unlocks(camera_page):
     page.locator('#sound-toggle').click()
     assert page.locator('#sound-toggle').get_attribute('aria-pressed')=='false'
     page.reload()
-    assert page.locator('#sound-toggle').inner_text()=='Звук: Выкл'
+    assert page.locator('#sound-toggle').get_attribute('title')=='Звук: Выкл'
     page.locator('#start-camera').click()
     wait_js(page,"document.querySelector('#scan-result').classList.contains('success')")
     assert page.evaluate('tones')==[]

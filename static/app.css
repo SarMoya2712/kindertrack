@@ -138,3 +138,19 @@
 .photo-delete:active{transform:scale(.94);background:#beb5a9}
 .photo-delete:focus-visible{outline:3px solid #6e473b;outline-offset:2px;box-shadow:0 0 0 5px #f4e6d2}
 @media(prefers-reduced-motion:reduce){.photo-delete{transition:none}}
+
+/* Camera controls stay in the preview, including native and fallback fullscreen. */
+.mobile-scanner .camera-stage{--camera-edge:12px;--camera-left:max(var(--camera-edge),env(safe-area-inset-left));--camera-right:max(var(--camera-edge),env(safe-area-inset-right));--camera-bottom:max(var(--camera-edge),env(safe-area-inset-bottom));isolation:isolate}
+.camera-overlay-control{position:absolute;z-index:2;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid #f4e6d245;border-radius:13px;background:#291c0ebd;color:#fff6e9;box-shadow:0 3px 12px #160d0633;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:background .18s ease,transform .18s ease,box-shadow .18s ease}
+.camera-overlay-control>span{display:flex;pointer-events:none}
+.camera-overlay-control:focus-visible{outline:3px solid #f4e6d2;outline-offset:3px}
+@media(hover:hover){.camera-overlay-control:hover{background:#6e473be6;box-shadow:0 4px 14px #160d064d}}
+.camera-overlay-control:active{transform:scale(.94);background:#6e473b}
+.camera-sound{top:max(var(--camera-edge),env(safe-area-inset-top));left:var(--camera-left)}
+.camera-fullscreen{bottom:var(--camera-bottom);left:var(--camera-left)}
+.camera-switch{bottom:var(--camera-bottom);right:var(--camera-right)}
+.mobile-scanner .camera-caption{bottom:calc(var(--camera-bottom) + 5px);max-width:calc(100% - var(--camera-left) - var(--camera-right) - 104px);white-space:normal;text-align:center;line-height:1.3;padding:8px 10px}
+.mobile-scanner #frame-quality{bottom:calc(var(--camera-bottom) + 54px);left:var(--camera-left);right:var(--camera-right);font-size:12px}
+.mobile-scanner .immersive .camera-controls{flex-shrink:0}
+@media(pointer:coarse){.mobile-scanner .camera-stage{--camera-edge:14px}}
+@media(prefers-reduced-motion:reduce){.camera-overlay-control{transition:none}}
