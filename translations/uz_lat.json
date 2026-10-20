@@ -335,5 +335,9 @@
   "fullscreen": "To‘liq ekran",
   "exit_fullscreen": "To‘liq ekrandan chiqish",
   "confirm_remove_preview": "Bu surat tanlanganlardan o‘chirilsinmi?",
-  "confirm_remove_saved": "Bu surat o‘chirilsinmi? O‘zgarish anketa saqlangandan keyin qo‘llanadi."
+  "confirm_remove_saved": "Bu surat o‘chirilsinmi? O‘zgarish anketa saqlangandan keyin qo‘llanadi.",
+  "registration_no_face": "Yuz aniqlanmadi. Boshqa suratni sinab ko‘ring.",
+  "registration_multiple_faces": "Bir nechta yuz aniqlandi. Bitta bolaning suratini yuklang.",
+  "registration_retry": "Yuzni ishonchli aniqlab bo‘lmadi yoki surat sifati yetarli emas. Boshqa aniq suratni tanlab, qayta yuklang.",
+  "registration_retry_help": "Surat qabul qilinmasa, bitta bolaning boshqa aniq suratini tanlab, qayta yuklang. Yuz har safar tekshiriladi."
 }

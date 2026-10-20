@@ -1,10 +1,12 @@
 """Private registration photos; deliberately independent of face recognition."""
 import io
+import json
+import logging
 import os
 import warnings
 from pathlib import Path
 from PIL import Image, ImageOps, UnidentifiedImageError
-from flask import current_app
+from flask import current_app, has_app_context
 
 MAX_BYTES = 15 * 1024 * 1024
 MAX_TOTAL_BYTES = 100 * 1024 * 1024
@@ -15,7 +17,15 @@ class PhotoError(ValueError):
     pass
 
 
-def prepare(upload):
+def diagnostic(event, **fields):
+    """Allowlisted numeric pipeline metadata only; never images, names or vectors."""
+    logger = (current_app.logger.getChild('registration') if has_app_context()
+              else logging.getLogger('registration'))
+    logger.setLevel(logging.INFO)
+    logger.info('%s %s', event, json.dumps(fields, allow_nan=False))
+
+
+def prepare(upload, diagnostics=False):
     data = upload.stream.read(MAX_BYTES + 1)
     if not data or len(data) > MAX_BYTES:
         raise PhotoError('image_invalid')
@@ -28,11 +38,20 @@ def prepare(upload):
                 source.verify()
             with Image.open(io.BytesIO(data)) as source:
                 source.load()  # Decode before accepting; truncated files must fail.
+                original_size = source.size
+                orientation = source.getexif().get(274, 1)
                 image = ImageOps.exif_transpose(source).convert('RGB')
+                oriented_size = image.size
                 image.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
                 image.info.clear()
                 output = io.BytesIO()
                 image.save(output, format='JPEG', quality=90)
+                if diagnostics:
+                    diagnostic('photo_preprocessing', original_size=original_size,
+                               exif_orientation=orientation if isinstance(orientation, int) else None,
+                               oriented_size=oriented_size, stored_size=image.size,
+                               steps=['exif_transpose', 'RGB', 'thumbnail_lanczos_1600',
+                                      'strip_metadata', 'jpeg_quality_90'])
                 return output.getvalue()
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError,
             Image.DecompressionBombWarning, Image.DecompressionBombError) as error:

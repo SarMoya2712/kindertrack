@@ -31,7 +31,7 @@ class FaceService:
 
     def reference(self, upload):
         """Validate and enroll the exact normalized image that will be stored."""
-        data = photo_storage.prepare(upload)
+        data = photo_storage.prepare(upload, diagnostics=True)
         feature = self.embedding_from_bytes(data)
         return data, feature.tobytes(), MODEL
 
@@ -82,20 +82,115 @@ class FaceService:
     def extract(self, image, scanning=False):
         return self.analyze(image, scanning=scanning)[0]
 
+    def registration_faces(self, image):
+        """Run under the model lock; map all detections to stored-image coordinates.
+
+        YuNet's training scale is roughly 10–300px per face. Full-size portraits
+        can exceed it. Keep the full-resolution pass for small/background faces,
+        and also downsample the whole frame (never crop out another person).
+        """
+        height, width = image.shape[:2]
+        candidates, ambiguous = [], False
+        sizes = [(width, height)]
+        for bound in (640, 320):
+            scale = min(1., bound / max(width, height))
+            size = (max(1, round(width * scale)), max(1, round(height * scale)))
+            if size not in sizes:
+                sizes.append(size)
+        for size in sizes:
+            frame = image if size == (width, height) else cv2.resize(
+                image, size, interpolation=cv2.INTER_AREA)
+            self.detector.setInputSize(size)
+            _, faces = self.detector.detect(frame)
+            diagnostics = []
+            for raw in ([] if faces is None else faces):
+                face = np.asarray(raw, dtype=np.float32).copy()
+                finite = face.shape == (15,) and np.isfinite(face).all()
+                if finite:
+                    face[:14:2] *= width / size[0]
+                    face[1:14:2] *= height / size[1]
+                    x, y, w, h = face[:4]
+                    points = face[4:14].reshape(5, 2)
+                    intersection = max(0., min(width, x+w)-max(0., x)) * max(
+                        0., min(height, y+h)-max(0., y))
+                    valid = (w > 0 and h > 0 and intersection >= .9 * w * h
+                             and .85 <= face[-1] <= 1
+                             and (points >= 0).all()
+                             and (points[:, 0] < width).all()
+                             and (points[:, 1] < height).all()
+                             and np.linalg.norm(points[0]-points[1]) > 1)
+                else:
+                    valid = False
+                diagnostics.append(dict(
+                    confidence=round(float(face[-1]), 5) if finite else None,
+                    box=[round(float(v), 2) for v in face[:4]] if finite else None,
+                    valid=bool(valid)))
+                if valid:
+                    candidates.append((face, size))
+                else:
+                    # Do not silently discard a questionable second face.
+                    ambiguous = True
+            photo_storage.diagnostic('registration_detection', input_size=size,
+                stored_size=(width, height), color='BGR_uint8', normalization='none',
+                detector='yunet-2023mar', opencv=cv2.__version__,
+                resize='none' if size == (width, height) else 'INTER_AREA',
+                threshold=.85, count=len(diagnostics), detections=diagnostics)
+
+        # Cross-scale duplicates only: retain separate people, including small
+        # faces. NMS inside each detector pass has already removed duplicates.
+        kept, passes = [], []
+        for face, size in sorted(candidates, key=lambda row: float(row[0][-1]), reverse=True):
+            duplicate = False
+            for previous, seen in zip(kept, passes):
+                if size in seen:
+                    continue
+                left = np.maximum(face[:2], previous[:2])
+                right = np.minimum(face[:2]+face[2:4], previous[:2]+previous[2:4])
+                intersection = float(np.prod(np.maximum(0, right-left)))
+                union = float(face[2]*face[3]+previous[2]*previous[3])-intersection
+                if union > 0 and intersection / union > .5:
+                    seen.add(size)
+                    duplicate = True
+                    break
+            if not duplicate:
+                kept.append(face)
+                passes.append({size})
+        photo_storage.diagnostic('registration_detection_result', count=len(kept),
+                                 ambiguous=ambiguous)
+        if len(kept) > 1:
+            raise FaceError('registration_multiple_faces')
+        if ambiguous:
+            raise FaceError('registration_retry')
+        if not kept:
+            raise FaceError('registration_no_face')
+        return np.asarray(kept)
+
     def analyze(self, image, scanning=True):
         """Detect, check passive liveness, then embed under the model lock."""
         from services.liveness import LivenessResult
         with self.lock:
             self.load()
-            self.detector.setInputSize((image.shape[1], image.shape[0]))
-            _, faces = self.detector.detect(image)
+            if scanning:
+                self.detector.setInputSize((image.shape[1], image.shape[0]))
+                _, faces = self.detector.detect(image)
+            else:
+                faces = self.registration_faces(image)
             if scanning and has_request_context():
                 from services.frame_quality import evaluate
                 g.scan_quality = evaluate(image, faces)
-            if faces is None or len(faces) == 0: raise FaceError('no_face' if scanning else 'one_face')
-            if len(faces) != 1: raise FaceError('multiple_faces' if scanning else 'one_face')
+            if faces is None or len(faces) == 0: raise FaceError('no_face')
+            if len(faces) != 1: raise FaceError('multiple_faces')
             face = faces[0]
             if min(face[2:4]) < 60: raise FaceError('closer')
+            if not scanning:
+                from services.frame_quality import evaluate
+                quality = evaluate(image, faces)
+                photo_storage.diagnostic('registration_quality',
+                    sharpness=quality.get('sharpness'), state=quality['state'])
+                # Reuse the existing blur measurement; no mouth/expression or
+                # neutral-pose requirement is imposed on registration.
+                if quality.get('sharpness', 0) < 35:
+                    raise FaceError('registration_retry')
             result = LivenessResult('unavailable')
             if scanning:
                 result = current_app.extensions['liveness'].check(image, face)

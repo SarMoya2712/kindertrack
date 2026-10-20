@@ -60,5 +60,5 @@ def test_real_recognition_end_to_end(authorized,app,monkeypatch):
     # Blank and multi-face frames must never create attendance.
     app.config['REQUIRE_LIVENESS']=False
     with app.app_context():
-        with pytest.raises(FaceError,match='one_face'): service.extract(np.zeros((512,512,3),np.uint8))
-        with pytest.raises(FaceError,match='one_face'): service.extract(np.concatenate([original,original],axis=1))
+        with pytest.raises(FaceError,match='registration_no_face'): service.extract(np.zeros((512,512,3),np.uint8))
+        with pytest.raises(FaceError,match='registration_multiple_faces'): service.extract(np.concatenate([original,original],axis=1))
